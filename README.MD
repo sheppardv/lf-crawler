@@ -1,7 +1,12 @@
-`npm i`
+##How to run parser
 
-run mongo db with `docker-compose up`
+1. install packages: `npm i`
+1. run mongo db: `docker-compose up`
+1. create a collection `lostfilm` in db
+1. run index.js
 
-create a collection `lostfilm`
+##Show results
 
-run index.js
+1. `cd client`
+1. install libs `bower i`
+1. run `index.html`
