@@ -108,11 +108,11 @@ const parseEpisodes = function* ($el, $) {
         return;
     }
     const seasonNum = match[1];
-    episode.num = match[2];
+    episode.num = parseInt(match[2]);
 
-    episode.score = $(meta[2]).find('b').html();
-    episode.countComments = $(meta[3]).find('b').html();
-    episode.seasonNum = seasonNum;
+    episode.score = parseFloat($(meta[2]).find('b').html());
+    episode.countComments = parseInt($(meta[3]).find('b').html());
+    episode.seasonNum = parseInt(seasonNum);
 
     yield episode;
 };

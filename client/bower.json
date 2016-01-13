@@ -1,0 +1,21 @@
+{
+  "name": "client",
+  "homepage": "https://github.com/sheppardv/lf-crawler",
+  "authors": [
+    "sheppardv <vivchar.danylo@gmail.com>"
+  ],
+  "description": "",
+  "main": "",
+  "moduleType": [],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "highcharts": "~4.2.1"
+  }
+}
