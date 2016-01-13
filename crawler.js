@@ -1,18 +1,21 @@
-module.exports.crawl = function (onPage, onDrain) {
+const Crawler = require("crawler"),
+    he = require('he');
+
+module.exports.crawl = function (onShow, onDrain) {
     "use strict";
 
-    const url = 'http://www.lostfilm.tv/browse.php?cat='
-        ;
-    const Crawler = require("crawler"),
-        he = require('he');
+    getCategories().then((tvShowsToCrawl) => {
+        getTvShows(tvShowsToCrawl, onShow, onDrain)
+    });
+};
 
-    const tvShow = {};
-
-    var c = new Crawler({
-        maxConnections: 10,
+const getTvShows = (tvShowsToCrawl, onShow, onDrain) => {
+    "use strict";
+    const tvShowCrawler = new Crawler({
+        maxConnections: 100,
         forceUTF8: true,
         // This will be called for each crawled page
-        callback: function (error, result, $) {
+        callback: (error, result, $) => {
             'use strict';
 
             console.log('Processing %s', result.request.href);
@@ -23,71 +26,93 @@ module.exports.crawl = function (onPage, onDrain) {
             let name = he.decode(tvShowNameEncoded);
             name = /\((.*)\)/.exec(name)[1];
 
+            const tvShow = {};
             tvShow.name = he.decode(name);
-            tvShow.seasons = {};
+            tvShow.episodes = [];
 
             rows.each(function (idx, el) {
                 "use strict";
 
                 try {
-                    const episode = {};
-                    const $el = $(el);
-
-                    const nameHtml = $el.find('nobr').html();
-                    let match = /\((.*)\)/.exec(nameHtml);
-                    const name = match ? match[1] : '-';
-                    if (/The Complete.*/.test(name)) {
-                        return;
+                    for (let episode of parseEpisodes($(el), $)) {
+                        tvShow.episodes.push(episode);
                     }
-                    episode.name = he.decode(name);
-
-                    const meta = $el.find('td .micro span');
-
-                    match = /(\d).*(\d)/.exec(he.decode($(meta[1]).html()));
-                    if(!match){
-                        return;
-                    }
-                    const seasonNum = match[1];
-                    episode.num = match[2];
-
-                    episode.vote = $(meta[2]).find('b').html();
-                    episode.countComments = $(meta[3]).find('b').html();
-
-                    if (!tvShow.seasons[seasonNum]) {
-                        tvShow.seasons[seasonNum] = [];
-                    }
-
-                    tvShow.seasons[seasonNum].push(episode);
                 } catch (e) {
                     console.error(e);
                 }
             });
 
-            onPage(tvShow);
+            onShow(tvShow);
         },
-        onDrain
+        onDrain //no more shows
     });
 
-    const categoriesCrawler = new Crawler({
-        maxConnections: 10,
-        forceUTF8: true,
-        // This will be called for each crawled page
-        callback: function (error, result, $) {
-            'use strict';
+    tvShowCrawler.queue(tvShowsToCrawl);
+};
 
-            const catNums = [];
 
-            $('.mid .bb a').each((idx, el)=> {
-                const hrefCat = $(el).attr('href');
-                const catNum = /\d+$/.exec(hrefCat)[0];
-                catNums.push(catNum);
+const getCategories = () => {
+    "use strict";
+
+    return new Promise((resolve) => {
+        const categoriesUrlPart = 'http://www.lostfilm.tv/browse.php?cat=',
+            categoriesCrawler = new Crawler({
+                maxConnections: 10,
+                forceUTF8: true,
+                // This will be called for each crawled page
+                callback: function (error, result, $) {
+                    'use strict';
+
+                    const catNums = [];
+
+                    $('.mid .bb a').each((idx, el)=> {
+                        const hrefCat = $(el).attr('href');
+                        const catNum = /\d+$/.exec(hrefCat)[0];
+                        catNums.push(catNum);
+                    });
+
+                    const tVShowsToCrawl = catNums.map((catNum)=> {
+                        return (categoriesUrlPart + catNum);
+                    });
+
+                    console.info("Got %s categories.", tVShowsToCrawl.length);
+
+                    resolve(tVShowsToCrawl);
+                }
             });
 
-            c.queue(catNums.map((catNum)=> {
-                return (url + catNum);
-            }));
-        }
+        categoriesCrawler.queue('http://www.lostfilm.tv/serials.php');
     });
+};
 
-    categoriesCrawler.queue('http://www.lostfilm.tv/serials.php');
+const parseEpisodes = function* ($el, $) {
+    'use strict';
+    const episode = {},
+        nameHtml = $el.find('nobr').html();
+
+    let match = /\((.*)\)/.exec(nameHtml);
+    const name = match ? match[1] : '-';
+
+    //this is not episode but whole eason
+    if (/The Complete.*/.test(name)) {
+        return;
+    }
+
+    episode.name = he.decode(name);
+
+    const meta = $el.find('td .micro span');
+
+    //search for season and episode numbers
+    match = /(\d).*(\d)/.exec(he.decode($(meta[1]).html()));
+    if (!match) {
+        return;
+    }
+    const seasonNum = match[1];
+    episode.num = match[2];
+
+    episode.score = $(meta[2]).find('b').html();
+    episode.countComments = $(meta[3]).find('b').html();
+    episode.seasonNum = seasonNum;
+
+    yield episode;
 };
