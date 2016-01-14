@@ -93,26 +93,25 @@ const parseEpisodes = function* ($el, $) {
     let match = /\((.*)\)/.exec(nameHtml);
     const name = match ? match[1] : '-';
 
-    //this is not episode but whole eason
-    if (/The Complete.*/.test(name)) {
-        return;
+    //this is not episode but whole іeason
+    if (!/The Complete.*/.test(name)) {
+
+        episode.name = he.decode(name);
+
+        const meta = $el.find('td .micro span');
+
+        //search for season and episode numbers
+        match = /(\d).*(\d)/.exec(he.decode($(meta[1]).html()));
+        if (!match) {
+            return;
+        }
+        const seasonNum = match[1];
+        episode.num = parseInt(match[2]);
+
+        episode.score = parseFloat($(meta[2]).find('b').html());
+        episode.countComments = parseInt($(meta[3]).find('b').html());
+        episode.seasonNum = parseInt(seasonNum);
+
+        yield episode;
     }
-
-    episode.name = he.decode(name);
-
-    const meta = $el.find('td .micro span');
-
-    //search for season and episode numbers
-    match = /(\d).*(\d)/.exec(he.decode($(meta[1]).html()));
-    if (!match) {
-        return;
-    }
-    const seasonNum = match[1];
-    episode.num = parseInt(match[2]);
-
-    episode.score = parseFloat($(meta[2]).find('b').html());
-    episode.countComments = parseInt($(meta[3]).find('b').html());
-    episode.seasonNum = parseInt(seasonNum);
-
-    yield episode;
 };

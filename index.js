@@ -1,8 +1,9 @@
 'use strict';
 
-const MongoClient = require('mongodb').MongoClient
+const mongodb = require('mongodb')
+    , MongoClient = mongodb.MongoClient
     , crawler = require('./crawler.js')
-    , ObjectId = require('mongodb').ObjectID
+    , ObjectId = mongodb.ObjectID
     ;
 
 // Connection URL
